@@ -94,7 +94,7 @@ func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware
 
 				// Store trace ID in context
 				// 将 trace ID 存入 context
-				ctx = context.WithValue(ctx, traceCtxKey{}, traceID)
+				ctx = setTraceIDToContext(ctx, traceID)
 
 				// Propagate trace ID to outgoing gRPC metadata for downstream services
 				// When this service makes gRPC calls, downstream services receive the same trace ID
@@ -147,6 +147,12 @@ func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware
 // context 存储 trace ID 的类型
 type traceCtxKey struct{}
 
+// setTraceIDToContext stores trace ID into context
+// 将 trace ID 存入 context
+func setTraceIDToContext(ctx context.Context, traceID string) context.Context {
+	return context.WithValue(ctx, traceCtxKey{}, traceID)
+}
+
 // GetTraceIDFromContext get trace ID from context
 // 从 context 中获取 trace ID
 func GetTraceIDFromContext(ctx context.Context) string {
@@ -162,6 +168,23 @@ func GetTraceIDFromContext(ctx context.Context) string {
 // GetTraceIDFromContext 的简写
 func GetTraceID(ctx context.Context) string {
 	return GetTraceIDFromContext(ctx)
+}
+
+// LogTraceID returns a log.Valuer that extracts trace ID from context
+// Use with log.With to auto-include trace ID in each log line:
+//
+//	logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
+//	logger = log.With(logger, "trace-uuid", tracekratos.LogTraceID())
+//
+// LogTraceID 返回一个 log.Valuer，从 context 中提取 trace ID
+// 配合 log.With 使用，让每一行日志都自动包含 trace ID：
+//
+//	logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
+//	logger = log.With(logger, "trace-uuid", tracekratos.LogTraceID())
+func LogTraceID() log.Valuer {
+	return func(ctx context.Context) interface{} {
+		return GetTraceIDFromContext(ctx)
+	}
 }
 
 // ExtractArgs returns the string of the req-param

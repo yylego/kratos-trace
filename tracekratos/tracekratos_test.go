@@ -1,6 +1,7 @@
 package tracekratos
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -48,9 +49,47 @@ func TestGetTraceID(t *testing.T) {
 	require.Empty(t, GetTraceID(ctx))
 	require.Empty(t, GetTraceIDFromContext(ctx))
 
-	ctx = context.WithValue(ctx, traceCtxKey{}, "test-trace-id")
-	require.Equal(t, "test-trace-id", GetTraceID(ctx))
-	require.Equal(t, "test-trace-id", GetTraceIDFromContext(ctx))
+	ctx = setTraceIDToContext(ctx, "TEST-TRACE-ID")
+	require.Equal(t, "TEST-TRACE-ID", GetTraceID(ctx))
+	require.Equal(t, "TEST-TRACE-ID", GetTraceIDFromContext(ctx))
+}
+
+func TestLogTraceID(t *testing.T) {
+	// Create a buffer to capture log output
+	var buf bytes.Buffer
+
+	// Wrap logger with TraceID valuer
+	logger := log.With(log.NewStdLogger(&buf), "request-trace", LogTraceID())
+
+	// Simulate a request context with trace ID
+	ctx := setTraceIDToContext(context.Background(), "ABC-123-XYZ-456")
+
+	// Log with context - the trace ID should appear in output
+	log.NewHelper(log.WithContext(ctx, logger)).Log(log.LevelInfo, "msg", "hello")
+
+	output := buf.String()
+	t.Log("log output:", output)
+
+	// Verify trace ID appears in the log output
+	require.Contains(t, output, "request-trace")
+	require.Contains(t, output, "ABC-123-XYZ-456")
+	require.Contains(t, output, "hello")
+}
+
+func TestLogTraceID_NoTraceInContext(t *testing.T) {
+	var buf bytes.Buffer
+	logger := log.With(log.NewStdLogger(&buf), "trace-uuid", LogTraceID())
+
+	// Log without trace ID in context
+	ctx := context.Background()
+	log.NewHelper(log.WithContext(ctx, logger)).Log(log.LevelInfo, "msg", "no trace")
+
+	output := buf.String()
+	t.Log("log output:", output)
+
+	// Should still have the key but with empty value
+	require.Contains(t, output, "trace-uuid")
+	require.Contains(t, output, "no trace")
 }
 
 func TestWithLogReply(t *testing.T) {
