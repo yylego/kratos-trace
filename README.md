@@ -27,7 +27,7 @@ Trace ID middleware with cross-service propagation using Kratos framework, provi
 - ⚙️ Flexible Config - Build config with custom options
 - 📊 Response Logging - Response and cost logging on demand
 - 🎯 Context Access - Get trace ID from context in business code
-- 📝 Log Integration - Use `LogTraceID()` with `log.With` to auto-include trace ID in each log line
+- 📝 Log Integration - Use `LogTraceID(keyName)` to auto-include trace ID in each log line
 
 ## Installation
 
@@ -42,8 +42,9 @@ package main
 
 import (
     "context"
+    "fmt"
 
-    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v3/log"
     "github.com/google/uuid"
     "github.com/yylego/kratos-trace/tracekratos"
 )
@@ -62,7 +63,8 @@ func main() {
     )
 
     // Create trace middleware
-    middleware := tracekratos.NewTraceMiddleware(config, log.DefaultLogger)
+    applog := log.NewLogger(log.NewHandler())
+    middleware := tracekratos.NewTraceMiddleware(config, applog)
 
     // Use in Kratos server
     // httpSrv := http.NewServer(
@@ -103,15 +105,15 @@ tracekratos.WithFormatArgs(func(req any) string {
 
 ### Auto Include Trace ID in Each Log Line
 
-Use `LogTraceID()` with `log.With` to auto-include trace ID in each log line. No need to pass trace ID in business code — each log statement within the same request context will contain the trace ID.
+Use `LogTraceID(keyName)` to auto-include the trace ID in each log line. No need to pass trace ID in business code — each log statement within the same request context will contain the trace ID.
 
 ```go
-// Wrap the base Kratos log.Logger with LogTraceID valuer
-logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
+// Wire LogTraceID into the logger so each line carries the trace ID
+applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("request-trace"))))
 
-// Now each log line within a request will auto-include trace ID:
-// INFO request-trace=ABC-123-XYZ-456 msg=processing
-// INFO request-trace=ABC-123-XYZ-456 msg=done
+// Now each log line within a request auto-includes trace ID:
+// level=INFO msg=processing request-trace=ABC-123-XYZ-456
+// level=INFO msg=done request-trace=ABC-123-XYZ-456
 ```
 
 ### Get Trace ID in Business Code
@@ -160,8 +162,8 @@ func WithLogReply(enable bool) Option          // Enable response and cost loggi
 
 ```go
 func NewConfig(keyName string, opts ...Option) *Config // Create config with trace name and options
-func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware // Create trace middleware
-func LogTraceID() log.Valuer // Returns log.Valuer to auto-include trace ID in each log line
+func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // Create trace middleware
+func LogTraceID(keyName string) log.Extractor // Returns log.Extractor to auto-include trace ID in each log line
 func GetTraceID(ctx context.Context) string // Get trace ID from context (short name)
 func GetTraceIDFromContext(ctx context.Context) string // Get trace ID from context
 func ExtractArgs(req any) string // Extract request args to string

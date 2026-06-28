@@ -3,15 +3,16 @@ package tracekratos
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/errors"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware"
-	"github.com/go-kratos/kratos/v2/middleware/logging"
-	"github.com/go-kratos/kratos/v2/transport"
+	"github.com/go-kratos/kratos/v3/errors"
+	"github.com/go-kratos/kratos/v3/log"
+	"github.com/go-kratos/kratos/v3/middleware"
+	"github.com/go-kratos/kratos/v3/middleware/logging"
+	"github.com/go-kratos/kratos/v3/transport"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -82,7 +83,7 @@ func NewConfig(keyName string, opts ...Option) *Config {
 
 // NewTraceMiddleware create trace middleware
 // 创建追踪中间件
-func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware {
+func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
 		return func(ctx context.Context, req any) (reply any, err error) {
 			if tsp, ok := transport.FromServerContext(ctx); ok {
@@ -108,7 +109,7 @@ func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware
 				startTime := time.Now()
 				// cp from: https://github.com/go-kratos/kratos/blob/15dd2f638e3d53d059913ca83818f5843d67a277/middleware/logging/logging.go#L47
 				// cp from: https://github.com/go-kratos/kratos/blob/15dd2f638e3d53d059913ca83818f5843d67a277/middleware/logging/logging.go#L87
-				log.NewHelper(log.WithContext(ctx, logger)).Log(config.LogLevel,
+				applog.Log(ctx, config.LogLevel, "trace",
 					"kind", "server",
 					"component", kind,
 					"operation", operation,
@@ -127,7 +128,7 @@ func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware
 					if erk := errors.FromError(err); erk != nil {
 						code = int(erk.Code)
 					}
-					log.NewHelper(log.WithContext(ctx, logger)).Log(config.LogLevel,
+					applog.Log(ctx, config.LogLevel, "trace",
 						"kind", "server",
 						"component", kind,
 						"operation", operation,
@@ -170,20 +171,20 @@ func GetTraceID(ctx context.Context) string {
 	return GetTraceIDFromContext(ctx)
 }
 
-// LogTraceID returns a log.Valuer that extracts trace ID from context
-// Use with log.With to auto-include trace ID in each log line:
+// LogTraceID returns a log.Extractor that adds the trace ID as a log field
+// Wire it in so each log line carries the trace ID:
 //
-//	logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
-//	logger = log.With(logger, "trace-uuid", tracekratos.LogTraceID())
+//	applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("request-trace"))))
+//	applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("trace-uuid"))))
 //
-// LogTraceID 返回一个 log.Valuer，从 context 中提取 trace ID
-// 配合 log.With 使用，让每一行日志都自动包含 trace ID：
+// LogTraceID 返回一个 log.Extractor，把 trace ID 作为日志字段注入
+// 把它接进日志生成流程，让每一行日志都自动带上 trace ID：
 //
-//	logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
-//	logger = log.With(logger, "trace-uuid", tracekratos.LogTraceID())
-func LogTraceID() log.Valuer {
-	return func(ctx context.Context) interface{} {
-		return GetTraceIDFromContext(ctx)
+//	applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("request-trace"))))
+//	applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("trace-uuid"))))
+func LogTraceID(keyName string) log.Extractor {
+	return func(ctx context.Context) []slog.Attr {
+		return []slog.Attr{slog.String(keyName, GetTraceIDFromContext(ctx))}
 	}
 }
 

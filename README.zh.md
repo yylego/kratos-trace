@@ -27,7 +27,7 @@ Trace ID 中间件，支持跨服务传播，在 Kratos 框架中提供请求追
 - ⚙️ 灵活配置 - 使用自定义选项构建配置
 - 📊 响应日志 - 可选的响应和耗时日志
 - 🎯 Context 访问 - 在业务代码中从 context 获取 trace ID
-- 📝 日志集成 - 使用 `LogTraceID()` 配合 `log.With`，让每行日志自动包含 trace ID
+- 📝 日志集成 - 使用 `LogTraceID(keyName)`，让每行日志自动包含 trace ID
 
 ## 安装
 
@@ -42,8 +42,9 @@ package main
 
 import (
     "context"
+    "fmt"
 
-    "github.com/go-kratos/kratos/v2/log"
+    "github.com/go-kratos/kratos/v3/log"
     "github.com/google/uuid"
     "github.com/yylego/kratos-trace/tracekratos"
 )
@@ -62,7 +63,8 @@ func main() {
     )
 
     // 创建追踪中间件
-    middleware := tracekratos.NewTraceMiddleware(config, log.DefaultLogger)
+    applog := log.NewLogger(log.NewHandler())
+    middleware := tracekratos.NewTraceMiddleware(config, applog)
 
     // 在 Kratos 服务中使用
     // httpSrv := http.NewServer(
@@ -103,15 +105,15 @@ tracekratos.WithFormatArgs(func(req any) string {
 
 ### 让每行日志自动包含 Trace ID
 
-使用 `LogTraceID()` 配合 `log.With`，无需在业务代码中手动传递 trace ID，同一请求内的每条日志都会自动包含 trace ID。
+使用 `LogTraceID(keyName)`，无需在业务代码中手动传递 trace ID，同一请求内的每条日志都会自动包含 trace ID。
 
 ```go
-// 用 LogTraceID 包装 Kratos log.Logger
-logger = log.With(logger, "request-trace", tracekratos.LogTraceID())
+// 把 LogTraceID 接到 logger 上，让每行日志自动带上 trace ID
+applog := log.NewLogger(log.NewHandler(log.WithExtractor(tracekratos.LogTraceID("request-trace"))))
 
 // 之后同一请求内的每行日志都自动带上 trace ID：
-// INFO request-trace=ABC-123-XYZ-456 msg=processing
-// INFO request-trace=ABC-123-XYZ-456 msg=done
+// level=INFO msg=processing request-trace=ABC-123-XYZ-456
+// level=INFO msg=done request-trace=ABC-123-XYZ-456
 ```
 
 ### 在业务代码中获取 Trace ID
@@ -160,8 +162,8 @@ func WithLogReply(enable bool) Option          // 启用响应和耗时日志
 
 ```go
 func NewConfig(keyName string, opts ...Option) *Config // 使用追踪键名和选项创建配置
-func NewTraceMiddleware(config *Config, logger log.Logger) middleware.Middleware // 创建追踪中间件
-func LogTraceID() log.Valuer // 返回 log.Valuer，让每行日志自动包含 trace ID
+func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // 创建追踪中间件
+func LogTraceID(keyName string) log.Extractor // 返回 log.Extractor，让每行日志自动包含 trace ID
 func GetTraceID(ctx context.Context) string // 从 context 获取 trace ID（简写）
 func GetTraceIDFromContext(ctx context.Context) string // 从 context 获取 trace ID
 func ExtractArgs(req any) string // 提取请求参数的字符串表示

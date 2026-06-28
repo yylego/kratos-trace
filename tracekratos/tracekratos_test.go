@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v3/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,14 +58,14 @@ func TestLogTraceID(t *testing.T) {
 	// Create a buffer to capture log output
 	var buf bytes.Buffer
 
-	// Wrap logger with TraceID valuer
-	logger := log.With(log.NewStdLogger(&buf), "request-trace", LogTraceID())
+	// Build a logger whose handler extracts the trace ID from each context
+	applog := log.NewLogger(log.NewHandler(log.WithWriter(&buf), log.WithExtractor(LogTraceID("request-trace"))))
 
 	// Simulate a request context with trace ID
 	ctx := setTraceIDToContext(context.Background(), "ABC-123-XYZ-456")
 
 	// Log with context - the trace ID should appear in output
-	log.NewHelper(log.WithContext(ctx, logger)).Log(log.LevelInfo, "msg", "hello")
+	applog.InfoContext(ctx, "hello")
 
 	output := buf.String()
 	t.Log("log output:", output)
@@ -78,11 +78,11 @@ func TestLogTraceID(t *testing.T) {
 
 func TestLogTraceID_NoTraceInContext(t *testing.T) {
 	var buf bytes.Buffer
-	logger := log.With(log.NewStdLogger(&buf), "trace-uuid", LogTraceID())
+	applog := log.NewLogger(log.NewHandler(log.WithWriter(&buf), log.WithExtractor(LogTraceID("trace-uuid"))))
 
 	// Log without trace ID in context
 	ctx := context.Background()
-	log.NewHelper(log.WithContext(ctx, logger)).Log(log.LevelInfo, "msg", "no trace")
+	applog.InfoContext(ctx, "no trace")
 
 	output := buf.String()
 	t.Log("log output:", output)
