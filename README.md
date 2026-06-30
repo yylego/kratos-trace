@@ -22,7 +22,7 @@ Trace ID middleware with cross-service propagation using Kratos framework, provi
 ## Main Features
 
 - 🔍 Trace ID Logging - Show trace ID in request logs
-- 🔗 Cross-Service Propagation - Auto inject trace ID into outgoing gRPC metadata for downstream services
+- 🔗 Cross-Service Propagation - Carry the trace ID to downstream services: auto over gRPC via outgoing metadata, and over HTTP with the client middleware (`NewClientMiddleware`)
 - 🚀 Auto Generation - Auto generate trace ID when not provided
 - ⚙️ Flexible Config - Build config with custom options
 - 📊 Response Logging - Response and cost logging on demand
@@ -126,6 +126,20 @@ func (s *Service) DoSomething(ctx context.Context) {
 }
 ```
 
+### Propagate Trace ID over HTTP Calls
+
+`NewTraceMiddleware` already propagates the trace ID over gRPC (via outgoing metadata). For an HTTP client call, add `NewClientMiddleware` so the current trace ID is written into the outgoing request header and the downstream service receives the same trace ID.
+
+```go
+client, _ := http.NewClient(
+    context.Background(),
+    http.WithEndpoint("http://127.0.0.1:8001"),
+    http.WithMiddleware(
+        tracekratos.NewClientMiddleware(tracekratos.NewConfig("X-Trace-ID")),
+    ),
+)
+```
+
 ## Complete Examples
 
 See [kratos-trace-demos](https://github.com/yylego/kratos-trace-demos) to view complete integration in Kratos projects:
@@ -162,7 +176,8 @@ func WithLogReply(enable bool) Option          // Enable response and cost loggi
 
 ```go
 func NewConfig(keyName string, opts ...Option) *Config // Create config with trace name and options
-func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // Create trace middleware
+func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // Create server-side trace middleware
+func NewClientMiddleware(config *Config) middleware.Middleware // Create client-side middleware to propagate trace ID into the outgoing request header (HTTP and gRPC)
 func LogTraceID(keyName string) log.Extractor // Returns log.Extractor to auto-include trace ID in each log line
 func GetTraceID(ctx context.Context) string // Get trace ID from context (short name)
 func GetTraceIDFromContext(ctx context.Context) string // Get trace ID from context

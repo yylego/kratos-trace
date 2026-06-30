@@ -7,6 +7,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/go-kratos/kratos/v3/log"
+	"github.com/go-kratos/kratos/v3/transport"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,4 +99,58 @@ func TestWithLogReply(t *testing.T) {
 
 	config2 := NewConfig("X-Trace-ID")
 	require.False(t, config2.LogReply)
+}
+
+// mockHeader is a map-backed transport.Header for client middleware testing
+// mockHeader 是用 map 实现的 transport.Header，供客户端中间件测试使用
+type mockHeader map[string]string
+
+func (m mockHeader) Get(key string) string        { return m[key] }
+func (m mockHeader) Set(key string, value string) { m[key] = value }
+func (m mockHeader) Add(key string, value string) { m[key] = value }
+func (m mockHeader) Values(key string) []string   { return []string{m[key]} }
+func (m mockHeader) Keys() []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// mockClientTransport is a minimal client-side transport.Transporter for testing
+// mockClientTransport 是测试用的最小客户端 transport.Transporter 实现
+type mockClientTransport struct {
+	header transport.Header
+}
+
+func (t *mockClientTransport) Kind() transport.Kind            { return transport.KindHTTP }
+func (t *mockClientTransport) Endpoint() string                { return "" }
+func (t *mockClientTransport) Operation() string               { return "" }
+func (t *mockClientTransport) RequestHeader() transport.Header { return t.header }
+func (t *mockClientTransport) ReplyHeader() transport.Header   { return t.header }
+
+func TestNewClientMiddleware(t *testing.T) {
+	config := NewConfig("TRACE_ID")
+	handle := NewClientMiddleware(config)(func(ctx context.Context, req any) (any, error) {
+		return "ok", nil
+	})
+
+	t.Run("inject trace ID into outgoing header", func(t *testing.T) {
+		header := mockHeader{}
+		ctx := transport.NewClientContext(context.Background(), &mockClientTransport{header: header})
+		ctx = setTraceIDToContext(ctx, "TEST-TRACE-ID")
+
+		_, err := handle(ctx, nil)
+		require.NoError(t, err)
+		require.Equal(t, "TEST-TRACE-ID", header.Get("TRACE_ID"))
+	})
+
+	t.Run("no trace ID in context keeps header unset", func(t *testing.T) {
+		header := mockHeader{}
+		ctx := transport.NewClientContext(context.Background(), &mockClientTransport{header: header})
+
+		_, err := handle(ctx, nil)
+		require.NoError(t, err)
+		require.Empty(t, header.Get("TRACE_ID"))
+	})
 }

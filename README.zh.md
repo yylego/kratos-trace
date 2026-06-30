@@ -22,7 +22,7 @@ Trace ID 中间件，支持跨服务传播，在 Kratos 框架中提供请求追
 ## 主要功能
 
 - 🔍 Trace ID 日志 - 在请求日志中显示 trace ID
-- 🔗 跨服务传播 - 自动将 trace ID 注入出站 gRPC metadata，传递给下游服务
+- 🔗 跨服务传播 - 把 trace ID 传给下游服务：gRPC 经出站 metadata 自动传播，HTTP 用客户端中间件（`NewClientMiddleware`）传播
 - 🚀 自动生成 - 未提供时自动生成 trace ID
 - ⚙️ 灵活配置 - 使用自定义选项构建配置
 - 📊 响应日志 - 可选的响应和耗时日志
@@ -126,6 +126,20 @@ func (s *Service) DoSomething(ctx context.Context) {
 }
 ```
 
+### 在 HTTP 调用中传播 Trace ID
+
+`NewTraceMiddleware` 已经能经 gRPC（出站 metadata）传播 trace ID。发起 HTTP 调用时，给客户端加上 `NewClientMiddleware`，它会把当前 trace ID 写进出站请求头，让下游服务收到同一个 trace ID。
+
+```go
+client, _ := http.NewClient(
+    context.Background(),
+    http.WithEndpoint("http://127.0.0.1:8001"),
+    http.WithMiddleware(
+        tracekratos.NewClientMiddleware(tracekratos.NewConfig("X-Trace-ID")),
+    ),
+)
+```
+
 ## 完整示例
 
 查看 [kratos-trace-demos](https://github.com/yylego/kratos-trace-demos) 查看在实际 Kratos 项目中的完整集成：
@@ -162,7 +176,8 @@ func WithLogReply(enable bool) Option          // 启用响应和耗时日志
 
 ```go
 func NewConfig(keyName string, opts ...Option) *Config // 使用追踪键名和选项创建配置
-func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // 创建追踪中间件
+func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middleware // 创建服务端追踪中间件
+func NewClientMiddleware(config *Config) middleware.Middleware // 创建客户端中间件，把 trace ID 注入出站请求头（HTTP 和 gRPC）
 func LogTraceID(keyName string) log.Extractor // 返回 log.Extractor，让每行日志自动包含 trace ID
 func GetTraceID(ctx context.Context) string // 从 context 获取 trace ID（简写）
 func GetTraceIDFromContext(ctx context.Context) string // 从 context 获取 trace ID

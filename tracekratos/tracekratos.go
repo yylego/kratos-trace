@@ -144,6 +144,29 @@ func NewTraceMiddleware(config *Config, applog *slog.Logger) middleware.Middlewa
 	}
 }
 
+// NewClientMiddleware create client-side trace middleware. It reads the trace ID
+// the server middleware stored in context and writes it into the outgoing request
+// header, so a downstream service reached over HTTP receives the same trace ID.
+// gRPC calls already propagate through outgoing metadata (see injectOutgoingTraceID);
+// this middleware covers the HTTP path and works for gRPC clients too.
+//
+// NewClientMiddleware 创建客户端追踪中间件：从 context 取出服务端中间件存入的 trace ID，
+// 写进出站请求头，让经 HTTP 调用的下游服务收到同一个 trace ID。
+// gRPC 调用已由出站 metadata 传播（见 injectOutgoingTraceID），本中间件补齐 HTTP 这条路，
+// 对 gRPC 客户端同样适用。
+func NewClientMiddleware(config *Config) middleware.Middleware {
+	return func(handler middleware.Handler) middleware.Handler {
+		return func(ctx context.Context, req any) (any, error) {
+			if traceID := GetTraceIDFromContext(ctx); traceID != "" {
+				if tsp, ok := transport.FromClientContext(ctx); ok {
+					tsp.RequestHeader().Set(config.TraceKeyName, traceID)
+				}
+			}
+			return handler(ctx, req)
+		}
+	}
+}
+
 // traceCtxKey is the context storage name to get trace ID
 // context 存储 trace ID 的类型
 type traceCtxKey struct{}
