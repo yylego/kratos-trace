@@ -3,6 +3,9 @@ package tracekratos
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v7"
@@ -22,6 +25,21 @@ func TestNewConfig(t *testing.T) {
 	req := &reqType{}
 	require.NoError(t, gofakeit.Struct(req))
 	t.Log(config.FormatArgs(req))
+}
+
+// TestNewConfigDefaultTraceID checks the default ID is "<UnixNano>-<rand.Text>" and two calls in a row give distinct IDs
+// TestNewConfigDefaultTraceID 检查默认 ID 是 "<纳秒时间>-<rand.Text>"，且连续两次生成的不同
+func TestNewConfigDefaultTraceID(t *testing.T) {
+	config := NewConfig("X-B3-TRACE-ID")
+	traceID1 := config.NewTraceID(context.Background())
+	traceID2 := config.NewTraceID(context.Background())
+	require.NotEqual(t, traceID1, traceID2)
+
+	nanoText, randText, found := strings.Cut(traceID1, "-")
+	require.True(t, found)
+	_, err := strconv.ParseInt(nanoText, 10, 64)
+	require.NoError(t, err)
+	require.Len(t, randText, len(rand.Text()))
 }
 
 func TestNewConfigWithOptions(t *testing.T) {

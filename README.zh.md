@@ -1,9 +1,13 @@
+<!-- TEMPLATE (ZH) BEGIN: BADGES -->
+
 [![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/yylego/kratos-trace/release.yml?branch=main&label=BUILD)](https://github.com/yylego/kratos-trace/actions/workflows/release.yml?query=branch%3Amain)
 [![GoDoc](https://pkg.go.dev/badge/github.com/yylego/kratos-trace)](https://pkg.go.dev/github.com/yylego/kratos-trace)
 [![Coverage Status](https://img.shields.io/coveralls/github/yylego/kratos-trace/main.svg)](https://coveralls.io/github/yylego/kratos-trace?branch=main)
-[![Supported Go Versions](https://img.shields.io/badge/Go-1.25+-lightgrey.svg)](https://go.dev/)
+[![Supported Go Versions](https://img.shields.io/badge/Go-1.25%2B-lightgrey.svg)](https://go.dev/)
 [![GitHub Release](https://img.shields.io/github/release/yylego/kratos-trace.svg)](https://github.com/yylego/kratos-trace/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yylego/kratos-trace)](https://goreportcard.com/report/github.com/yylego/kratos-trace)
+
+<!-- TEMPLATE (ZH) CLOSE: BADGES -->
 
 # kratos-trace
 
@@ -17,7 +21,7 @@ Trace ID 中间件，支持跨服务传播，在 Kratos 框架中提供请求追
 
 [ENGLISH README](README.md)
 
-<!-- TEMPLATE (ZH) END: LANGUAGE NAVIGATION -->
+<!-- TEMPLATE (ZH) CLOSE: LANGUAGE NAVIGATION -->
 
 ## 主要功能
 
@@ -185,8 +189,9 @@ func ExtractArgs(req any) string // 提取请求参数的字符串表示
 ```
 
 <!-- TEMPLATE (ZH) BEGIN: STANDARD PROJECT FOOTER -->
+<!-- VERSION 2025-11-25 03:52:28.131064 +0000 UTC -->
 
-## 📄 许可证
+## 📄 许可证类型
 
 MIT 许可证 - 详见 [LICENSE](LICENSE)。
 
@@ -241,10 +246,4 @@ MIT 许可证 - 详见 [LICENSE](LICENSE)。
 
 **祝你用这个包编程愉快！** 🎉🎉🎉
 
-<!-- TEMPLATE (ZH) END: STANDARD PROJECT FOOTER -->
-
----
-
-## GitHub 标星点赞
-
-[![Stargazers](https://starchart.cc/yylego/kratos-trace.svg?variant=adaptive)](https://starchart.cc/yylego/kratos-trace)
+<!-- TEMPLATE (ZH) CLOSE: STANDARD PROJECT FOOTER -->

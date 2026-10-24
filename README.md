@@ -1,9 +1,13 @@
+<!-- TEMPLATE (EN) BEGIN: BADGES -->
+
 [![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/yylego/kratos-trace/release.yml?branch=main&label=BUILD)](https://github.com/yylego/kratos-trace/actions/workflows/release.yml?query=branch%3Amain)
 [![GoDoc](https://pkg.go.dev/badge/github.com/yylego/kratos-trace)](https://pkg.go.dev/github.com/yylego/kratos-trace)
 [![Coverage Status](https://img.shields.io/coveralls/github/yylego/kratos-trace/main.svg)](https://coveralls.io/github/yylego/kratos-trace?branch=main)
-[![Supported Go Versions](https://img.shields.io/badge/Go-1.25+-lightgrey.svg)](https://go.dev/)
+[![Supported Go Versions](https://img.shields.io/badge/Go-1.25%2B-lightgrey.svg)](https://go.dev/)
 [![GitHub Release](https://img.shields.io/github/release/yylego/kratos-trace.svg)](https://github.com/yylego/kratos-trace/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yylego/kratos-trace)](https://goreportcard.com/report/github.com/yylego/kratos-trace)
+
+<!-- TEMPLATE (EN) CLOSE: BADGES -->
 
 # kratos-trace
 
@@ -17,7 +21,7 @@ Trace ID middleware with cross-service propagation using Kratos framework, provi
 
 [中文说明](README.zh.md)
 
-<!-- TEMPLATE (EN) END: LANGUAGE NAVIGATION -->
+<!-- TEMPLATE (EN) CLOSE: LANGUAGE NAVIGATION -->
 
 ## Main Features
 
@@ -185,6 +189,7 @@ func ExtractArgs(req any) string // Extract request args to string
 ```
 
 <!-- TEMPLATE (EN) BEGIN: STANDARD PROJECT FOOTER -->
+<!-- VERSION 2025-11-25 03:52:28.131064 +0000 UTC -->
 
 ## 📄 License
 
@@ -241,10 +246,4 @@ Welcome to contribute to this project via submitting merge requests and reportin
 
 **Have Fun Coding with this package!** 🎉🎉🎉
 
-<!-- TEMPLATE (EN) END: STANDARD PROJECT FOOTER -->
-
----
-
-## GitHub Stars
-
-[![Stargazers](https://starchart.cc/yylego/kratos-trace.svg?variant=adaptive)](https://starchart.cc/yylego/kratos-trace)
+<!-- TEMPLATE (EN) CLOSE: STANDARD PROJECT FOOTER -->

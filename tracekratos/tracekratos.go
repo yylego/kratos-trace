@@ -2,6 +2,7 @@ package tracekratos
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -62,13 +63,22 @@ func WithLogReply(enable bool) Option {
 	}
 }
 
+// newRandomTraceID builds a trace ID from a nanosecond time prefix plus a random suffix, sortable and collision-safe
+//
+// newRandomTraceID 用纳秒时间前缀 + 随机后缀拼出 trace ID，可排序且防碰撞
+func newRandomTraceID() string {
+	// Time prefix keeps IDs sortable and shows the moment; rand.Text gives 128 random bits that keep IDs unique within the same instant
+	// 时间前缀让 ID 可排序、能看出时刻；rand.Text 给出 128 位随机数，保证同一时刻内的唯一性
+	return strconv.FormatInt(time.Now().UnixNano(), 10) + "-" + rand.Text()
+}
+
 // NewConfig create config with trace name and options
 // 使用追踪键名和选项创建配置
 func NewConfig(keyName string, opts ...Option) *Config {
 	cfg := &Config{
 		TraceKeyName: keyName,
 		NewTraceID: func(ctx context.Context) string {
-			return strconv.FormatInt(time.Now().UnixNano(), 10)
+			return newRandomTraceID()
 		},
 		FormatArgs: func(req any) string {
 			return "((" + strings.ReplaceAll(ExtractArgs(req), `"`, `'`) + "))"
